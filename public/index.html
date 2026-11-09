@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nexus - Groq Ultra-Fast & Parallel Search</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Marked Markdown Parser -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- Highlight.js for Syntax Highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+  <!-- Subtle Slate Overlay -->
+  <div class="vibe-grid-overlay"></div>
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+
+  <div class="app-layout">
+    <!-- Top Bar with shadcn/ui Slate styling -->
+    <header class="top-nav">
+      <div class="nav-left">
+        <div class="vibe-logo">
+          <div class="logo-inner">N</div>
+        </div>
+        <div class="nav-titles">
+          <div class="nav-brand">
+            Nexus <span class="shimmer-pill">GROQ × PARALLEL</span>
+          </div>
+          <div class="nav-status">
+            <span class="live-dot"></span>
+            <span class="status-pulse-text">Groq LPU Active (Ultra-Fast)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Audio Feedback Toggle -->
+        <button id="soundToggleBtn" class="icon-toggle-btn active" title="Toggle audio feedback">
+          <span class="sound-icon">🔊</span>
+        </button>
+
+        <!-- Persona / Tone Control -->
+        <div class="persona-control">
+          <label for="personaSelect">Filter Mode:</label>
+          <select id="personaSelect" class="tone-select">
+            <option value="unfiltered" selected>🔓 Unfiltered & Direct</option>
+            <option value="human">👤 Conversational Peer</option>
+            <option value="technical">⚙️ Deep Architectural</option>
+            <option value="concise">⚡ Crisp Executive</option>
+          </select>
+        </div>
+
+        <button id="exportChatBtn" class="vibe-btn secondary" title="Export conversation as Markdown">
+          <span>Export</span>
+        </button>
+        <button id="clearChatBtn" class="vibe-btn danger" title="Clear conversation">
+          <span>Clear</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Chat Workspace -->
+    <main class="chat-workspace" id="chatWorkspace">
+      <!-- shadcn/ui Slate Hero Card -->
+      <section class="hero-card" id="heroCard">
+        <div class="magic-badge">
+          <span>⚡ Powered by Groq LPU + Parallel.ai Live Search</span>
+        </div>
+        <h2 id="dynamicGreeting">Good evening, creator.</h2>
+        <p class="hero-subtext">
+          Zero corporate lecturing, zero boilerplate preaching. Powered by Groq's near-instant LPU inference and live internet grounding.
+        </p>
+
+        <!-- Quick Scenario Cards -->
+        <div class="scenario-grid">
+          <button class="scenario-card" data-prompt="Analyze the trade-offs of self-hosted open-weights models vs serverless APIs for production.">
+            <span class="card-icon">⚡</span>
+            <span class="card-text">
+              <strong>Production Architecture</strong>
+              <small>Serverless vs Private GPU Clusters</small>
+            </span>
+          </button>
+          <button class="scenario-card" data-prompt="Search the latest developments in AI model safety and unaligned models in 2026.">
+            <span class="card-icon">🛡️</span>
+            <span class="card-text">
+              <strong>Live AI Research</strong>
+              <small>Real-time Parallel search grounding</small>
+            </span>
+          </button>
+          <button class="scenario-card" data-prompt="Give me an unfiltered technical comparison between Groq LPUs and NVIDIA H100 GPUs.">
+            <span class="card-icon">🔬</span>
+            <span class="card-text">
+              <strong>Hardware Comparison</strong>
+              <small>Groq LPU vs NVIDIA H100 Architecture</small>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Message History Container -->
+      <div class="dialogue-container" id="dialogueContainer"></div>
+    </main>
+
+    <!-- Typing Cadence Indicator -->
+    <div class="typing-pill" id="typingPill">
+      <div class="typing-wave">
+        <span></span><span></span><span></span>
+      </div>
+      <span id="typingLabel">Groq LPU streaming live insight...</span>
+    </div>
+
+    <!-- Input Dock -->
+    <footer class="input-dock">
+      <div class="dock-controls">
+        <label class="toggle-control" title="Enable real-time internet search">
+          <input type="checkbox" id="webSearchToggle" checked>
+          <span class="toggle-label">🌐 Parallel Live Search</span>
+        </label>
+        <span class="char-counter" id="charCounter">0 / 2000</span>
+      </div>
+
+      <form id="chatForm" class="message-composer">
+        <textarea
+          id="userInput"
+          placeholder="Ask anything with zero filter... (Shift + Enter for line break)"
+          rows="1"
+          maxlength="2000"
+          required
+        ></textarea>
+        <button type="submit" id="sendBtn" class="submit-action shimmer-button" title="Send message">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </form>
+      <div class="dock-caption">
+        Groq LPU Acceleration · Parallel.ai Live Grounding · shadcn/ui Slate Design
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
