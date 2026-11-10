@@ -141,6 +141,40 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   });
 
+  // Helper: Deep convert JSON objects or arrays into human Markdown
+  function formatJsonToHumanMarkdown(data) {
+    if (typeof data !== 'object' || data === null) {
+      return String(data);
+    }
+    if (typeof data.reply === 'string') return data.reply;
+    if (typeof data.content === 'string') return data.content;
+    if (typeof data.message === 'string') return data.message;
+    if (typeof data.answer === 'string') return data.answer;
+    if (typeof data.text === 'string') return data.text;
+    if (typeof data.response === 'string') return data.response;
+
+    if (Array.isArray(data)) {
+      return data.map((item, idx) => {
+        if (typeof item === 'object') {
+          return `#### আইটেম ${idx + 1}\n` + formatJsonToHumanMarkdown(item);
+        }
+        return `- ${item}`;
+      }).join('\n\n');
+    }
+
+    return Object.entries(data).map(([key, val]) => {
+      const title = key
+        .replace(/_/g, ' ')
+        .replace(/([A-Z])/g, ' $1')
+        .trim();
+      const formattedTitle = title.charAt(0).toUpperCase() + title.slice(1);
+      if (typeof val === 'object' && val !== null) {
+        return `### ${formattedTitle}\n${formatJsonToHumanMarkdown(val)}`;
+      }
+      return `### ${formattedTitle}\n${val}`;
+    }).join('\n\n');
+  }
+
   // 9. Form Submit & JSON-to-Human Transformation
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -198,13 +232,19 @@ document.addEventListener('DOMContentLoaded', () => {
       // Ensure JSON is NEVER displayed raw to the user
       let humanFormattedReply = data.reply || 'কোনো উত্তর পাওয়া যায়নি।';
       
-      // Clean stringified JSON if present
+      // Clean stringified JSON if present (either raw JSON or code-fenced JSON)
       if (typeof humanFormattedReply === 'string') {
-        const trimmed = humanFormattedReply.trim();
-        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        let cleanText = humanFormattedReply.trim();
+        if (cleanText.startsWith('```json') && cleanText.endsWith('```')) {
+          cleanText = cleanText.slice(7, -3).trim();
+        } else if (cleanText.startsWith('```') && cleanText.endsWith('```')) {
+          cleanText = cleanText.slice(3, -3).trim();
+        }
+
+        if ((cleanText.startsWith('{') && cleanText.endsWith('}')) || (cleanText.startsWith('[') && cleanText.endsWith(']'))) {
           try {
-            const parsed = JSON.parse(trimmed);
-            humanFormattedReply = parsed.reply || parsed.answer || parsed.message || parsed.content || JSON.stringify(parsed, null, 2);
+            const parsed = JSON.parse(cleanText);
+            humanFormattedReply = formatJsonToHumanMarkdown(parsed);
           } catch (e) {}
         }
       }

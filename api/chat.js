@@ -158,23 +158,54 @@ ${CORE_MANDATE}`
       ? data.choices[0].message.content
       : 'No response received from the model.';
 
-    // Sanitize: If model returned a stringified JSON object, extract the human text
-    const trimmedReply = reply.trim();
-    if (trimmedReply.startsWith('{') && trimmedReply.endsWith('}')) {
-      try {
-        const parsed = JSON.parse(trimmedReply);
-        if (parsed.reply) reply = parsed.reply;
-        else if (parsed.content) reply = parsed.content;
-        else if (parsed.message) reply = parsed.message;
-        else if (parsed.answer) reply = parsed.answer;
-        else {
-          // Flatten key-values into markdown headers and bullets
-          reply = Object.entries(parsed)
-            .map(([k, v]) => `### ${k.replace(/_/g, ' ').toUpperCase()}\n${typeof v === 'object' ? JSON.stringify(v, null, 2) : v}`)
-            .join('\n\n');
+    // Helper: Recursively format any arbitrary JSON object or array into polished human Markdown
+    function formatJsonToHumanMarkdown(data) {
+      if (typeof data !== 'object' || data === null) {
+        return String(data);
+      }
+      if (typeof data.reply === 'string') return data.reply;
+      if (typeof data.content === 'string') return data.content;
+      if (typeof data.message === 'string') return data.message;
+      if (typeof data.answer === 'string') return data.answer;
+      if (typeof data.text === 'string') return data.text;
+      if (typeof data.response === 'string') return data.response;
+
+      if (Array.isArray(data)) {
+        return data.map((item, idx) => {
+          if (typeof item === 'object') {
+            return `#### আইটেম ${idx + 1}\n` + formatJsonToHumanMarkdown(item);
+          }
+          return `- ${item}`;
+        }).join('\n\n');
+      }
+
+      return Object.entries(data).map(([key, val]) => {
+        const title = key
+          .replace(/_/g, ' ')
+          .replace(/([A-Z])/g, ' $1')
+          .trim();
+        const formattedTitle = title.charAt(0).toUpperCase() + title.slice(1);
+        if (typeof val === 'object' && val !== null) {
+          return `### ${formattedTitle}\n${formatJsonToHumanMarkdown(val)}`;
         }
+        return `### ${formattedTitle}\n${val}`;
+      }).join('\n\n');
+    }
+
+    // Sanitize: If model returned stringified JSON (bare or in markdown code fence), unpack into clean human Markdown
+    let cleanReply = reply.trim();
+    if (cleanReply.startsWith('```json') && cleanReply.endsWith('```')) {
+      cleanReply = cleanReply.slice(7, -3).trim();
+    } else if (cleanReply.startsWith('```') && cleanReply.endsWith('```')) {
+      cleanReply = cleanReply.slice(3, -3).trim();
+    }
+
+    if ((cleanReply.startsWith('{') && cleanReply.endsWith('}')) || (cleanReply.startsWith('[') && cleanReply.endsWith(']'))) {
+      try {
+        const parsed = JSON.parse(cleanReply);
+        reply = formatJsonToHumanMarkdown(parsed);
       } catch (e) {
-        // keep as is if not strictly JSON
+        // Keep as is if not valid JSON
       }
     }
 
