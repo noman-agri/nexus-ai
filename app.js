@@ -15,10 +15,84 @@ document.addEventListener('DOMContentLoaded', () => {
   const scenarioCards = document.querySelectorAll('.scenario-card');
   const soundToggleBtn = document.getElementById('soundToggleBtn');
 
+  // Supabase Modal & Memory Elements
+  const openSupabaseModalBtn = document.getElementById('openSupabaseModalBtn');
+  const closeSupabaseModalBtn = document.getElementById('closeSupabaseModalBtn');
+  const supabaseModal = document.getElementById('supabaseModal');
+  const sbUrlInput = document.getElementById('sbUrlInput');
+  const sbKeyInput = document.getElementById('sbKeyInput');
+  const saveSupabaseBtn = document.getElementById('saveSupabaseBtn');
+  const clearSupabaseBtn = document.getElementById('clearSupabaseBtn');
+  const memoryStatusText = document.getElementById('memoryStatusText');
+
   let conversationHistory = [];
   let isSoundEnabled = true;
 
-  // 1. Web Audio API
+  // 1. Session ID for 3-Day Ephemeral Memory
+  let sessionId = localStorage.getItem('nexus_session_id');
+  if (!sessionId) {
+    sessionId = 'sess_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now();
+    localStorage.setItem('nexus_session_id', sessionId);
+  }
+
+  // Update Supabase memory UI status
+  function updateMemoryBadge() {
+    const sbUrl = localStorage.getItem('nexus_supabase_url');
+    const sbKey = localStorage.getItem('nexus_supabase_key');
+    if (memoryStatusText) {
+      if (sbUrl && sbKey) {
+        memoryStatusText.textContent = '🟢 মেমোরি: Supabase (৩ দিনের অটো-পার্জ)';
+      } else {
+        memoryStatusText.textContent = '☁️ মেমোরি: লোকাল (Supabase যুক্ত করুন)';
+      }
+    }
+  }
+  updateMemoryBadge();
+
+  if (openSupabaseModalBtn && supabaseModal) {
+    openSupabaseModalBtn.addEventListener('click', () => {
+      if (sbUrlInput) sbUrlInput.value = localStorage.getItem('nexus_supabase_url') || '';
+      if (sbKeyInput) sbKeyInput.value = localStorage.getItem('nexus_supabase_key') || '';
+      supabaseModal.style.display = 'flex';
+    });
+  }
+
+  if (closeSupabaseModalBtn && supabaseModal) {
+    closeSupabaseModalBtn.addEventListener('click', () => {
+      supabaseModal.style.display = 'none';
+    });
+  }
+
+  if (saveSupabaseBtn && supabaseModal) {
+    saveSupabaseBtn.addEventListener('click', () => {
+      const url = sbUrlInput ? sbUrlInput.value.trim() : '';
+      const key = sbKeyInput ? sbKeyInput.value.trim() : '';
+      if (url && key) {
+        localStorage.setItem('nexus_supabase_url', url);
+        localStorage.setItem('nexus_supabase_key', key);
+        alert('✓ Supabase মেমোরি কনফিগারেশন সফলভাবে সেভ হয়েছে! ৩ দিনের অটো-পার্জ কার্যকর।');
+      } else {
+        localStorage.removeItem('nexus_supabase_url');
+        localStorage.removeItem('nexus_supabase_key');
+      }
+      updateMemoryBadge();
+      supabaseModal.style.display = 'none';
+    });
+  }
+
+  if (clearSupabaseBtn && supabaseModal) {
+    clearSupabaseBtn.addEventListener('click', () => {
+      localStorage.removeItem('nexus_supabase_url');
+      localStorage.removeItem('nexus_supabase_key');
+      if (sbUrlInput) sbUrlInput.value = '';
+      if (sbKeyInput) sbKeyInput.value = '';
+      updateMemoryBadge();
+      alert('Supabase ক্রেডেনশিয়াল মুছে ফেলা হয়েছে। এখন লোকাল সেশন মেমোরি চলবে।');
+      supabaseModal.style.display = 'none';
+    });
+  }
+
+  // 2. Web Audio API
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
 
@@ -57,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
     soundToggleBtn.querySelector('.sound-icon').textContent = isSoundEnabled ? '🔊' : '🔇';
   });
 
-  // 2. Dynamic Human Greeting (Bengali-aware)
+  // 3. Dynamic Human Greeting
   const hour = new Date().getHours();
   let greeting = 'শুভ সন্ধ্যা / Good evening.';
   if (hour >= 5 && hour < 12) {
@@ -67,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (dynamicGreeting) dynamicGreeting.textContent = greeting;
 
-  // 3. Persona LocalStorage Persistence (Defaults to 18+ Adult & Unrestricted)
+  // 4. Persona LocalStorage Persistence (Defaults to adult_18)
   const savedPersona = localStorage.getItem('nexus_persona');
   if (savedPersona && personaSelect) {
     personaSelect.value = savedPersona;
@@ -80,12 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. Marked Configuration
+  // 5. Marked Configuration
   if (window.marked) {
     marked.setOptions({ breaks: true, gfm: true });
   }
 
-  // 5. Input Auto-Resize & Character Counter
+  // 6. Input Auto-Resize & Character Counter
   userInput.addEventListener('input', () => {
     userInput.style.height = 'auto';
     userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
@@ -99,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 6. Scenario Cards Click
+  // 7. Scenario Cards Click
   scenarioCards.forEach(card => {
     card.addEventListener('click', () => {
       initAudio();
@@ -112,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 7. Clear Conversation
+  // 8. Clear Conversation
   clearChatBtn.addEventListener('click', () => {
     if (confirm('Clear the conversation?')) {
       conversationHistory = [];
@@ -121,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 8. Export Conversation
+  // 9. Export Conversation
   exportChatBtn.addEventListener('click', () => {
     if (conversationHistory.length === 0) {
       alert('No messages to export yet.');
@@ -179,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }).join('\n\n');
   }
 
-  // 9. Form Submit & JSON-to-Human Transformation
+  // 10. Form Submit: Link Check + Parallel Grounding + Supabase Sync
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = userInput.value.trim();
@@ -189,7 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
     playSendSound();
 
     const isWebSearch = webSearchToggle ? webSearchToggle.checked : true;
-    const persona = personaSelect ? personaSelect.value : 'unfiltered';
+    const persona = personaSelect ? personaSelect.value : 'adult_18';
+    const hasUrl = /(https?:\/\/[^\s]+)/i.test(text);
 
     if (heroCard) heroCard.style.display = 'none';
 
@@ -202,11 +277,15 @@ document.addEventListener('DOMContentLoaded', () => {
     userInput.style.height = 'auto';
     if (charCounter) charCounter.textContent = '0 / 2000';
 
-    // Show Typing Indicator
+    // Show Typing Indicator based on intent
     if (typingLabel) {
-      typingLabel.textContent = isWebSearch
-        ? 'Parallel ডোমেন সার্চ ও Groq NLP প্রসেসিং চলছে...'
-        : 'Groq LPU প্রসেসিং চলছে...';
+      if (hasUrl) {
+        typingLabel.textContent = '🔍 লিংক ডোমেন পরীক্ষা ও রুট অ্যানালাইসিস চলছে...';
+      } else if (isWebSearch) {
+        typingLabel.textContent = 'Parallel ডোমেন সার্চ ও Groq NLP প্রসেসিং চলছে...';
+      } else {
+        typingLabel.textContent = 'Groq LPU প্রসেসিং চলছে...';
+      }
     }
     showTyping(true);
 
@@ -217,7 +296,10 @@ document.addEventListener('DOMContentLoaded', () => {
         body: JSON.stringify({
           messages: conversationHistory,
           webSearch: isWebSearch,
-          persona: persona
+          persona: persona,
+          sessionId: sessionId,
+          supabaseUrl: localStorage.getItem('nexus_supabase_url') || '',
+          supabaseKey: localStorage.getItem('nexus_supabase_key') || ''
         })
       });
 
@@ -232,6 +314,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       playReceiveSound();
+
+      if (data.memoryStatus === 'supabase_active' && memoryStatusText) {
+        memoryStatusText.textContent = '🟢 মেমোরি: Supabase (৩ দিনের অটো-পার্জ)';
+      }
 
       // Ensure JSON is NEVER displayed raw to the user
       let humanFormattedReply = data.reply || 'কোনো উত্তর পাওয়া যায়নি।';
@@ -253,8 +339,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
 
-      // Append clean human message with interactive sources tray
-      appendMessage('ai', humanFormattedReply, data.sources);
+      // Append clean human message with interactive sources tray & inspected link
+      appendMessage('ai', humanFormattedReply, data.sources, data.inspectedUrl);
       conversationHistory.push({ role: 'assistant', content: humanFormattedReply });
 
     } catch (err) {
@@ -263,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  function appendMessage(role, content, sources = []) {
+  function appendMessage(role, content, sources = [], inspectedUrl = null) {
     const row = document.createElement('div');
     row.className = `dialogue-row ${role}`;
 
@@ -294,6 +380,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     contentWrapper.appendChild(bubble);
+
+    // If a specific link was inspected, render an Inspected Link Badge
+    if (role === 'ai' && inspectedUrl) {
+      const linkBadge = document.createElement('div');
+      linkBadge.className = 'sources-tray';
+      linkBadge.innerHTML = `
+        <div class="sources-tray-header">
+          <span>🔍 পরীক্ষিত লিংক (Live Inspected Link):</span>
+        </div>
+        <div class="source-pills-list">
+          <a class="source-pill" href="${inspectedUrl}" target="_blank" rel="noopener noreferrer">
+            <span class="source-num">🔗</span> <span class="source-title">${inspectedUrl.slice(0, 60)}</span> ↗
+          </a>
+        </div>
+      `;
+      contentWrapper.appendChild(linkBadge);
+    }
 
     // If live sources exist from Parallel Search, render a clean Source Pills Tray
     if (role === 'ai' && Array.isArray(sources) && sources.length > 0) {
@@ -347,21 +450,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     contentWrapper.appendChild(actionsToolbar);
-
     row.appendChild(avatar);
     row.appendChild(contentWrapper);
-    dialogueContainer.appendChild(row);
 
+    dialogueContainer.appendChild(row);
     scrollToBottom();
   }
 
-  function showTyping(state) {
-    if (state) {
-      typingPill.classList.add('active');
-    } else {
-      typingPill.classList.remove('active');
+  function showTyping(show) {
+    if (typingPill) {
+      typingPill.style.display = show ? 'inline-flex' : 'none';
+      if (show) scrollToBottom();
     }
-    scrollToBottom();
   }
 
   function scrollToBottom() {

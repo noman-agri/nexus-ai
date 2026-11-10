@@ -40,6 +40,12 @@
       </div>
 
       <div class="nav-right">
+        <!-- Supabase Cloud Memory Toggle -->
+        <button id="openSupabaseModalBtn" class="memory-status-badge" title="Supabase Cloud Memory Settings">
+          <span class="memory-indicator-dot">☁️</span>
+          <span id="memoryStatusText">মেমোরি: লোকাল</span>
+        </button>
+
         <!-- Audio Feedback Toggle -->
         <button id="soundToggleBtn" class="icon-toggle-btn active" title="Toggle audio feedback">
           <span class="sound-icon">🔊</span>
@@ -49,11 +55,10 @@
         <div class="persona-control">
           <label for="personaSelect">Filter Mode:</label>
           <select id="personaSelect" class="tone-select">
-            <option value="adult_18" selected>🔞 18+ Adult & Unrestricted</option>
-            <option value="unfiltered">🔓 Direct & Unfiltered</option>
-            <option value="human">👤 Conversational Peer</option>
-            <option value="technical">⚙️ Deep Architectural</option>
-            <option value="concise">⚡ Crisp Executive</option>
+            <option value="adult_18" selected>🔞 রুট টক & ১৮+ আনফিল্টার্ড</option>
+            <option value="unfiltered">🔓 ডিরেক্ট অ্যান্ড আনফিল্টার্ড</option>
+            <option value="human">👤 হিউম্যান কনভার্সেশনাল</option>
+            <option value="technical">⚙️ ডিপ আর্কিটেকচারাল</option>
           </select>
         </div>
 
@@ -66,39 +71,80 @@
       </div>
     </header>
 
+    <!-- Supabase Cloud Memory Modal -->
+    <div id="supabaseModal" class="modal-backdrop" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>☁️ Supabase মেমোরি কানেকশন</h3>
+          <button id="closeSupabaseModalBtn" class="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p style="color: #94a3b8; line-height: 1.5;">
+            আপনার চ্যাট মেমোরি Supabase-এ স্টোর হবে এবং <strong>৩ দিন পর রুল অনুযায়ী স্বয়ংক্রিয়ভাবে মুছে (Auto-purge) যাবে</strong>।
+          </p>
+          <div class="modal-input-group">
+            <label for="sbUrlInput">Supabase Project URL:</label>
+            <input type="text" id="sbUrlInput" class="modal-input" placeholder="https://xyzcompany.supabase.co">
+          </div>
+          <div class="modal-input-group">
+            <label for="sbKeyInput">Supabase Anon Key:</label>
+            <input type="password" id="sbKeyInput" class="modal-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+          </div>
+          <div class="modal-input-group">
+            <label>১-ক্লিক SQL টেবিল স্ক্রিপ্ট (Supabase SQL Editor-এ রান করুন):</label>
+            <div class="sql-snippet-box">CREATE TABLE IF NOT EXISTS public.chat_messages (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON public.chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_created ON public.chat_messages(created_at);
+ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read/write" ON public.chat_messages FOR ALL USING (true) WITH CHECK (true);</div>
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+            <button id="clearSupabaseBtn" class="vibe-btn danger">রিমুভ করুন</button>
+            <button id="saveSupabaseBtn" class="vibe-btn secondary">কানেক্ট করুন</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Main Chat Workspace -->
     <main class="chat-workspace" id="chatWorkspace">
       <!-- shadcn/ui Slate Hero Card -->
       <section class="hero-card" id="heroCard">
         <div class="magic-badge">
-          <span>⚡ Parallel.ai Live Search Grounding + Groq LPU NLP Analysis · 18+ Unrestricted</span>
+          <span>⚡ রুট ইন্টেলিজেন্স · লিংক চেকার · Groq LPU + Parallel AI · ১৮+ আনরেস্ট্রিক্টেড</span>
         </div>
         <h2 id="dynamicGreeting">Good evening, creator.</h2>
         <p class="hero-subtext">
-          Zero corporate lecturing, zero moral filter rationing. Parallel domain search data is fetched live and deeply converted into structured insight via Groq NLP.
+          জিরো করপোরেট লেকচারিং, জিরো কৃত্রিম ভদ্রতা। আপনি সরাসরি যেকোনো ১৮+ ইস্যু নিয়ে খোলামেলা কথা বলতে পারেন, কিংবা যেকোনো ওয়েবসাইট লিংক দিলে তা রুট লেভেলে পরীক্ষা করে উত্তর দেওয়া হবে।
         </p>
 
         <!-- Quick Scenario Cards -->
         <div class="scenario-grid">
-          <button class="scenario-card" data-prompt="Search and analyze adult wellness, human relationship psychology, and intimate health science with deep NLP breakdown in Bengali.">
+          <button class="scenario-card" data-prompt="https://en.wikipedia.org/wiki/Artificial_intelligence এই লিংকটি পরীক্ষা করে এর মূল বিষয়বস্তু ও সারাংশ বলো।">
+            <span class="card-icon">🔗</span>
+            <span class="card-text">
+              <strong>লাইভ লিংক চেকার</strong>
+              <small>যেকোনো URL বিশ্লেষণ ও সত্য যাচাই</small>
+            </span>
+          </button>
+          <button class="scenario-card" data-prompt="প্রাপ্তবয়স্কদের অন্তরঙ্গ সম্পর্ক, সেক্সুয়াল ওয়েলনেস ও মানসিক আকর্ষণ নিয়ে খোলামেলা রুট কথা বলো।">
             <span class="card-icon">🔞</span>
             <span class="card-text">
-              <strong>18+ Adult & Wellness Science</strong>
-              <small>Domain NLP analysis & human psychology</small>
+              <strong>১৮+ অ্যাডাল্ট ইস্যু ও মনস্তত্ত্ব</strong>
+              <small>সম্পূর্ণ আনসেন্সরড ও রুট আলোচনা</small>
             </span>
           </button>
-          <button class="scenario-card" data-prompt="Search the latest developments in AI model safety and unaligned open-weights models in 2026.">
-            <span class="card-icon">🛡️</span>
+          <button class="scenario-card" data-prompt="কোনো ডিপ্লোম্যাটিক কথা না বলে কৃত্রিম বুদ্ধিমত্তা ও ভবিষ্যতের চাকরি নিয়ে রুট সত্য কী তা বলো।">
+            <span class="card-icon">⚡</span>
             <span class="card-text">
-              <strong>Live AI Research Grounding</strong>
-              <small>Parallel search fetch + Groq NLP synthesis</small>
-            </span>
-          </button>
-          <button class="scenario-card" data-prompt="Give me an unfiltered technical comparison between Groq LPUs and NVIDIA H100 GPUs.">
-            <span class="card-icon">🔬</span>
-            <span class="card-text">
-              <strong>Hardware Architecture</strong>
-              <small>Groq LPU vs NVIDIA H100 benchmarks</small>
+              <strong>রুট ও আনফিল্টার্ড সত্য</strong>
+              <small>জিরো করপোরেট ডিপ্লোম্যাসি</small>
             </span>
           </button>
         </div>
