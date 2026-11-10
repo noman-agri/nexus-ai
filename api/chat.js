@@ -80,8 +80,20 @@ module.exports = async function handler(req, res) {
     }
 
     // ----------------------------------------------------
-    // 2. Direct Link Inspection Tool Function
+    // 2. Direct Link Inspection & Flux.1 Image Engine
     // ----------------------------------------------------
+    const isImageRequest = /(ছবি\s*আঁকো|ছবি\s*বানাও|ছবি\s*তৈরি\s*করো|generate\s*(an?\s*)?image|draw\s*(an?\s*)?image|create\s*(an?\s*)?image|picture\s*of|photo\s*of)/i.test(latestUserQuery);
+    let generatedImageUrl = null;
+
+    if (isImageRequest) {
+      const cleanVisualPrompt = latestUserQuery
+        .replace(/(ছবি\s*আঁকো|ছবি\s*বানাও|ছবি\s*তৈরি\s*করো|generate\s*(an?\s*)?image|draw\s*(an?\s*)?image|create\s*(an?\s*)?image|picture\s*of|photo\s*of)/gi, '')
+        .trim() || 'A hyper-realistic cinematic masterpiece, ultra-detailed 8k';
+      
+      const seed = Math.floor(Math.random() * 1000000);
+      generatedImageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanVisualPrompt)}?width=1024&height=1024&model=flux&nologo=true&seed=${seed}`;
+    }
+
     async function inspectUrlContent(targetUrl) {
       try {
         const controller = new AbortController();
@@ -408,6 +420,12 @@ ${CORE_MANDATE}`
         const parsed = JSON.parse(cleanReply);
         reply = formatJsonToHumanMarkdown(parsed);
       } catch (e) {}
+    }
+
+    // Prepend generated image from Pollinations Flux.1 if requested
+    if (generatedImageUrl) {
+      const imgBlock = `## 🎨 জেনারেটেড ইমেজ (Flux.1 Engine)\n\n![${latestUserQuery}](${generatedImageUrl})\n\n[🔍 সম্পূর্ণ রেজোলিউশনে দেখুন / ডাউনলোড লিংক](${generatedImageUrl})\n\n---\n\n`;
+      reply = imgBlock + reply;
     }
 
     // ----------------------------------------------------
