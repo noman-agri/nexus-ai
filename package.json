@@ -1,12 +1,12 @@
 {
-  "name": "ai-client-app",
+  "name": "nexus-ai",
   "version": "1.0.0",
-  "description": "Ultra low-cost structured AI chat application for Vercel",
-  "main": "api/chat.js",
+  "description": "Ultra low-cost structured AI chat application with Groq LPU and Parallel search grounding",
   "scripts": {
+    "dev": "node server.js",
     "start": "node server.js"
   },
-  "keywords": ["ai", "chat", "deepinfra", "vercel", "low-cost"],
-  "author": "",
+  "keywords": ["ai", "chat", "groq", "parallel", "vercel", "low-cost"],
+  "author": "Noman",
   "license": "MIT"
 }
