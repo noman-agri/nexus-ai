@@ -67,9 +67,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   if (dynamicGreeting) dynamicGreeting.textContent = greeting;
 
-  // 3. Persona LocalStorage Persistence
+  // 3. Persona LocalStorage Persistence (Defaults to 18+ Adult & Unrestricted)
   const savedPersona = localStorage.getItem('nexus_persona');
-  if (savedPersona && personaSelect) personaSelect.value = savedPersona;
+  if (savedPersona && personaSelect) {
+    personaSelect.value = savedPersona;
+  } else if (personaSelect) {
+    personaSelect.value = 'adult_18';
+  }
   if (personaSelect) {
     personaSelect.addEventListener('change', () => {
       localStorage.setItem('nexus_persona', personaSelect.value);
@@ -201,8 +205,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show Typing Indicator
     if (typingLabel) {
       typingLabel.textContent = isWebSearch
-        ? 'ইন্টারনেট সার্চ ও উত্তর প্রসেসিং চলছে...'
-        : 'উত্তর প্রস্তুত করা হচ্ছে...';
+        ? 'Parallel ডোমেন সার্চ ও Groq NLP প্রসেসিং চলছে...'
+        : 'Groq LPU প্রসেসিং চলছে...';
     }
     showTyping(true);
 
