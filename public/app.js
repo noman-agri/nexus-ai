@@ -18,17 +18,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let conversationHistory = [];
   let isSoundEnabled = true;
 
-  // 1. Web Audio API Acoustic Feedback (Zero External MP3s Needed)
+  // 1. Web Audio API
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
 
   function initAudio() {
-    if (!audioCtx && AudioContext) {
-      audioCtx = new AudioContext();
-    }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
+    if (!audioCtx && AudioContext) audioCtx = new AudioContext();
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
 
   function playTone(freq, type, duration, gainValue = 0.05) {
@@ -49,13 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {}
   }
 
-  function playSendSound() {
-    playTone(587.33, 'sine', 0.12, 0.04); // D5
-  }
-
+  function playSendSound() { playTone(587.33, 'sine', 0.12, 0.04); }
   function playReceiveSound() {
-    setTimeout(() => playTone(659.25, 'sine', 0.1, 0.03), 0); // E5
-    setTimeout(() => playTone(880.00, 'sine', 0.15, 0.03), 80); // A5
+    setTimeout(() => playTone(659.25, 'sine', 0.1, 0.03), 0);
+    setTimeout(() => playTone(880.00, 'sine', 0.15, 0.03), 80);
   }
 
   soundToggleBtn.addEventListener('click', () => {
@@ -64,23 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
     soundToggleBtn.querySelector('.sound-icon').textContent = isSoundEnabled ? '🔊' : '🔇';
   });
 
-  // 2. Dynamic Human Greeting
+  // 2. Dynamic Human Greeting (Bengali-aware)
   const hour = new Date().getHours();
-  let greeting = 'Good evening, creator.';
+  let greeting = 'শুভ সন্ধ্যা / Good evening.';
   if (hour >= 5 && hour < 12) {
-    greeting = 'Good morning, creator.';
+    greeting = 'শুভ সকাল / Good morning.';
   } else if (hour >= 12 && hour < 18) {
-    greeting = 'Good afternoon, creator.';
+    greeting = 'শুভ অপরাহ্ন / Good afternoon.';
   }
-  if (dynamicGreeting) {
-    dynamicGreeting.textContent = greeting;
-  }
+  if (dynamicGreeting) dynamicGreeting.textContent = greeting;
 
   // 3. Persona LocalStorage Persistence
   const savedPersona = localStorage.getItem('nexus_persona');
-  if (savedPersona && personaSelect) {
-    personaSelect.value = savedPersona;
-  }
+  if (savedPersona && personaSelect) personaSelect.value = savedPersona;
   if (personaSelect) {
     personaSelect.addEventListener('change', () => {
       localStorage.setItem('nexus_persona', personaSelect.value);
@@ -89,22 +78,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. Marked Configuration
   if (window.marked) {
-    marked.setOptions({
-      breaks: true,
-      gfm: true
-    });
+    marked.setOptions({ breaks: true, gfm: true });
   }
 
   // 5. Input Auto-Resize & Character Counter
   userInput.addEventListener('input', () => {
     userInput.style.height = 'auto';
     userInput.style.height = Math.min(userInput.scrollHeight, 140) + 'px';
-    if (charCounter) {
-      charCounter.textContent = `${userInput.value.length} / 2000`;
-    }
+    if (charCounter) charCounter.textContent = `${userInput.value.length} / 2000`;
   });
 
-  // Enter to send, Shift+Enter for new line
   userInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -134,14 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 8. Export Conversation as Markdown
+  // 8. Export Conversation
   exportChatBtn.addEventListener('click', () => {
     if (conversationHistory.length === 0) {
       alert('No messages to export yet.');
       return;
     }
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    let mdContent = `# Nexus Vibe Intelligence Transcript - ${new Date().toLocaleString()}\n\n---\n\n`;
+    let mdContent = `# Nexus Transcript - ${new Date().toLocaleString()}\n\n---\n\n`;
     conversationHistory.forEach(item => {
       const speaker = item.role === 'user' ? '### User' : '### Nexus';
       mdContent += `${speaker}\n\n${item.content}\n\n---\n\n`;
@@ -158,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(url);
   });
 
-  // 9. Form Submit
+  // 9. Form Submit & JSON-to-Human Transformation
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = userInput.value.trim();
@@ -168,11 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
     playSendSound();
 
     const isWebSearch = webSearchToggle ? webSearchToggle.checked : true;
-    const persona = personaSelect ? personaSelect.value : 'human';
+    const persona = personaSelect ? personaSelect.value : 'unfiltered';
 
-    if (heroCard) {
-      heroCard.style.display = 'none';
-    }
+    if (heroCard) heroCard.style.display = 'none';
 
     // Append User Message
     appendMessage('user', text);
@@ -186,8 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show Typing Indicator
     if (typingLabel) {
       typingLabel.textContent = isWebSearch
-        ? 'Browsing live web & formulating answer...'
-        : 'Formulating humanized response...';
+        ? 'ইন্টারনেট সার্চ ও উত্তর প্রসেসিং চলছে...'
+        : 'উত্তর প্রস্তুত করা হচ্ছে...';
     }
     showTyping(true);
 
@@ -202,27 +183,43 @@ document.addEventListener('DOMContentLoaded', () => {
         })
       });
 
+      // Parse JSON from API response
       const data = await response.json();
       showTyping(false);
 
       if (!response.ok) {
         const errorMsg = data.details || data.error || 'Server error occurred.';
-        appendMessage('ai', `⚠️ **Error:** ${errorMsg}`);
+        appendMessage('ai', `⚠️ **ত্রুটি (Error):** ${errorMsg}`);
         return;
       }
 
       playReceiveSound();
-      const aiReply = data.reply || 'No response generated.';
-      appendMessage('ai', aiReply);
-      conversationHistory.push({ role: 'assistant', content: aiReply });
+
+      // Ensure JSON is NEVER displayed raw to the user
+      let humanFormattedReply = data.reply || 'কোনো উত্তর পাওয়া যায়নি।';
+      
+      // Clean stringified JSON if present
+      if (typeof humanFormattedReply === 'string') {
+        const trimmed = humanFormattedReply.trim();
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            humanFormattedReply = parsed.reply || parsed.answer || parsed.message || parsed.content || JSON.stringify(parsed, null, 2);
+          } catch (e) {}
+        }
+      }
+
+      // Append clean human message with interactive sources tray
+      appendMessage('ai', humanFormattedReply, data.sources);
+      conversationHistory.push({ role: 'assistant', content: humanFormattedReply });
 
     } catch (err) {
       showTyping(false);
-      appendMessage('ai', `⚠️ **Connection Error:** Could not connect to backend (${err.message}).`);
+      appendMessage('ai', `⚠️ **সংযোগ ত্রুটি (Connection Error):** ব্যাকএন্ডের সাথে সংযোগ স্থাপন সম্ভব হয়নি (${err.message})।`);
     }
   });
 
-  function appendMessage(role, content) {
+  function appendMessage(role, content, sources = []) {
     const row = document.createElement('div');
     row.className = `dialogue-row ${role}`;
 
@@ -252,6 +249,35 @@ document.addEventListener('DOMContentLoaded', () => {
       bubble.textContent = content;
     }
 
+    contentWrapper.appendChild(bubble);
+
+    // If live sources exist from Parallel Search, render a clean Source Pills Tray
+    if (role === 'ai' && Array.isArray(sources) && sources.length > 0) {
+      const sourcesTray = document.createElement('div');
+      sourcesTray.className = 'sources-tray';
+      
+      const trayHeader = document.createElement('div');
+      trayHeader.className = 'sources-tray-header';
+      trayHeader.innerHTML = `<span>🌐 যাচাইকৃত লাইভ উৎস (${sources.length})</span>`;
+      sourcesTray.appendChild(trayHeader);
+
+      const pillsList = document.createElement('div');
+      pillsList.className = 'source-pills-list';
+
+      sources.forEach((s, idx) => {
+        const pill = document.createElement('a');
+        pill.className = 'source-pill';
+        pill.href = s.url;
+        pill.target = '_blank';
+        pill.rel = 'noopener noreferrer';
+        pill.innerHTML = `<span class="source-num">${idx + 1}</span> <span class="source-title">${s.title || 'Source'}</span> ↗`;
+        pillsList.appendChild(pill);
+      });
+
+      sourcesTray.appendChild(pillsList);
+      contentWrapper.appendChild(sourcesTray);
+    }
+
     // Message Actions Toolbar (Copy Button & Time)
     const actionsToolbar = document.createElement('div');
     actionsToolbar.className = 'message-actions';
@@ -264,19 +290,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (role === 'ai') {
       const copyBtn = document.createElement('button');
       copyBtn.className = 'copy-btn';
-      copyBtn.innerHTML = `<span>📋 Copy</span>`;
+      copyBtn.innerHTML = `<span>📋 কপি করুন (Copy)</span>`;
       copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(content).then(() => {
-          copyBtn.innerHTML = `<span>✓ Copied</span>`;
+          copyBtn.innerHTML = `<span>✓ কপি হয়েছে (Copied)</span>`;
           setTimeout(() => {
-            copyBtn.innerHTML = `<span>📋 Copy</span>`;
+            copyBtn.innerHTML = `<span>📋 কপি করুন (Copy)</span>`;
           }, 2000);
         });
       });
       actionsToolbar.appendChild(copyBtn);
     }
 
-    contentWrapper.appendChild(bubble);
     contentWrapper.appendChild(actionsToolbar);
 
     row.appendChild(avatar);

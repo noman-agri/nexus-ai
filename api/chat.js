@@ -1,4 +1,4 @@
-// Vercel Serverless Function: api/chat.js (Groq Ultra-Fast Inference + Parallel Search + Strict Structural Prompting)
+// Vercel Serverless Function: api/chat.js (Groq Ultra-Fast + Parallel Search + Strict No-Raw-JSON & Bangla Support)
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,7 +25,7 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Missing user message.' });
     }
 
-    // 1. Parallel Web Search Grounding (Read strictly from Environment)
+    // 1. Parallel Web Search Grounding
     const parallelApiKey = process.env.PARALLEL_API_KEY;
     let searchContext = '';
     let parallelSearchResults = [];
@@ -54,23 +54,21 @@ module.exports = async function handler(req, res) {
                 return `Source [${i + 1}] (${r.title}): ${r.url}\nExcerpt: ${excerpt.slice(0, 450)}`;
               }).join('\n\n');
           }
-        } else {
-          console.warn('Parallel search returned non-ok status:', searchRes.status);
         }
       } catch (searchErr) {
         console.warn('Parallel search connection failed:', searchErr.message);
       }
     }
 
-    // 2. Strict Structural Mandate & Persona Engine
-    const STRUCTURAL_MANDATE = `
-STRUCTURAL ARCHITECTURE RULES (MANDATORY FOR ALL REPLIES):
-1. EXECUTIVE SUMMARY: Start with a crisp, 1-2 sentence core takeaway under a bold heading (##).
-2. COMPARISON TABLE / MATRIX: Whenever comparing tools, architectures, trade-offs, or options, ALWAYS build a clean Markdown Table (| Column | Column |).
-3. SYSTEMATIC BREAKDOWN: Divide the solution into numbered (1, 2, 3) or bulleted analytical pillars with bold descriptive subheadings (###).
-4. CONCRETE CODE / EXAMPLES: Provide complete, syntax-highlighted code blocks or exact execution commands.
-5. CLICKABLE CITATIONS: Integrate verified links [Source Title](URL) from Parallel Search.
-6. ZERO FILLER: No preachy intros, no corporate lecturing ("As an AI...", "Certainly!"). Jump straight to Section 1.
+    // 2. Strict No-JSON, Humanized, & Multi-Lingual Prompt
+    const CORE_MANDATE = `
+OPERATING RULES & PRESENTATION MANDATE:
+1. LANGUAGE: Bengali (বাংলা) and English are BOTH approved and fully supported. If the user asks in Bengali or Banglish, respond naturally in polished, clear Bengali (বাংলা). If they ask in English, respond in English.
+2. STRICTLY NO RAW JSON: NEVER output raw JSON syntax, curly braces ({}), or key-value structures. All responses must be presented as beautiful, readable human Markdown.
+3. EXECUTIVE SUMMARY: Start with a crisp 1-2 sentence core takeaway under a bold heading (##).
+4. COMPARISON TABLES: Present trade-offs, architectures, or specs in clean Markdown Tables (| Column | Column |).
+5. STRUCTURED BREAKDOWN: Use numbered points (1, 2, 3) and bold descriptive subheadings (###).
+6. ZERO ROBOTIC CLICHES: Never say "As an AI language model..." or lecture the user. Dive directly into the answer.
 `;
 
     const PERSONA_PROMPTS = {
@@ -78,23 +76,23 @@ STRUCTURAL ARCHITECTURE RULES (MANDATORY FOR ALL REPLIES):
 Operating Style:
 - Zero moralizing, zero judgment, zero corporate lecturing.
 - Provide direct, raw technical and factual reality.
-${STRUCTURAL_MANDATE}`,
+${CORE_MANDATE}`,
 
       human: `You are a perceptive senior engineering collaborator and architect.
 Operating Style:
 - Natural, conversational, peer-level insight.
 - Eliminate robotic boilerplate.
-${STRUCTURAL_MANDATE}`,
+${CORE_MANDATE}`,
 
       technical: `You are a Principal Systems Architect and Security Researcher.
 Operating Style:
 - Deep technical rigor, memory models, protocol breakdowns, and production edge-cases.
-${STRUCTURAL_MANDATE}`,
+${CORE_MANDATE}`,
 
       concise: `You are an executive technology advisor.
 Operating Style:
 - High signal, minimal words.
-${STRUCTURAL_MANDATE}`
+${CORE_MANDATE}`
     };
 
     const chosenSystemPrompt = (PERSONA_PROMPTS[persona] || PERSONA_PROMPTS.unfiltered) + searchContext;
@@ -156,9 +154,29 @@ ${STRUCTURAL_MANDATE}`
     }
 
     const data = await upstreamResponse.json();
-    const reply = data.choices && data.choices[0] && data.choices[0].message
+    let reply = data.choices && data.choices[0] && data.choices[0].message
       ? data.choices[0].message.content
       : 'No response received from the model.';
+
+    // Sanitize: If model returned a stringified JSON object, extract the human text
+    const trimmedReply = reply.trim();
+    if (trimmedReply.startsWith('{') && trimmedReply.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmedReply);
+        if (parsed.reply) reply = parsed.reply;
+        else if (parsed.content) reply = parsed.content;
+        else if (parsed.message) reply = parsed.message;
+        else if (parsed.answer) reply = parsed.answer;
+        else {
+          // Flatten key-values into markdown headers and bullets
+          reply = Object.entries(parsed)
+            .map(([k, v]) => `### ${k.replace(/_/g, ' ').toUpperCase()}\n${typeof v === 'object' ? JSON.stringify(v, null, 2) : v}`)
+            .join('\n\n');
+        }
+      } catch (e) {
+        // keep as is if not strictly JSON
+      }
+    }
 
     return res.status(200).json({
       reply,
